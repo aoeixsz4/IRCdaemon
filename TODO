@@ -1,0 +1,8 @@
+irc.c:user_sendf() calls user_flush(), remove that call and let callers to
+		user_sendf() call user_flush() themselves afterwards IF they want to
+
+implement PRIVMSG
+implement JOIN
+implement PART
+
+further considerations?
