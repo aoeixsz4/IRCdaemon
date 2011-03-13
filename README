@@ -1,0 +1,4 @@
+ ABOUT
+Work in progress irc server in C. That is all.
+ DEPENDENCIES
+libev, libc. That is all.
