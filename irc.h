@@ -88,6 +88,9 @@ struct irc_user {
 	/* timestamp */
 	time_t time;
 
+	/* quit flag */
+	int quit;
+
 	/* backref to global server state struct each event watcher is
 	 * given a pointer to a struct irc_user, but the callbacks
 	 * also need the global state */
@@ -96,6 +99,7 @@ struct irc_user {
 
 void user_init(int, struct sockaddr_in *, struct irc_server *);
 void user_quit(struct irc_user *);
+void user_free(struct irc_user *);
 void user_read(struct irc_user *);
 ssize_t user_send(struct irc_user *, const char *);
 ssize_t user_sendl(struct irc_user *, const char *);

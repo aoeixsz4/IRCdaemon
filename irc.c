@@ -131,8 +131,8 @@ _nick (struct irc_user *user, int nr_args, char **args)
 		{
 			user_sendf(user, ":%s %3d %s :Erroneous nickaname\n",
 						IRC_SERVER_NAME, IRC_ERROR_BADNICK, nick);
+			return;
 		}
-		return;
 	}
 	/* check if the user is registered and if not, if this NICK command
 	 * will complete its registration */
@@ -476,7 +476,7 @@ user_flush (struct irc_user *user)
 void
 user_read (struct irc_user *user)
 {
-	char *command, **args, *p, *q;
+	char *command, **args, *p, *q, *next;
 	int nr_args, i;
 	void (*handler)(struct irc_user *, int, char **);
 	struct irc_server *server;
@@ -485,7 +485,13 @@ user_read (struct irc_user *user)
 	user->time = time(NULL);
 	p = user->recvbuf.buffer;
 	/* strip newline */
-	*(strchrnul(p, '\n')) = 0;
+	next = strchrnul(p, '\n');
+	if (*next == '\n')
+	{
+		/* blasted \r characters... */
+		if (*(next - 1) == '\r') *(next - 1) = 0;
+		*(next++) = 0;
+	}
 	command = p;
 	p = strchrnul(p, ' ');
 	nr_args = 0;
@@ -534,8 +540,19 @@ user_read (struct irc_user *user)
 		user_sendf(user, ":%s %d %s %s :Unknown command\n",
 					IRC_SERVER_NAME, IRC_ERROR_404, user->nick, command);
 	}
-	user->recvbuf.index = 0;
 	free(args);
+
+	/* BUG: we were throwing away data if a client sent more than one line
+	 * at once, FIX: recursion */
+	p = user->recvbuf.buffer;
+	q = user->recvbuf.buffer + user->recvbuf.index;
+	i = q - next;
+	user->recvbuf.index = i;
+	if (i)
+	{
+		memmove(p, next, i);
+		user_read(user);
+	}
 }
 
 /* cleanup everything... */
@@ -569,7 +586,16 @@ user_quit (struct irc_user *user)
 		assert((server = user->server) != NULL);
 		assert(hash_remove(&server->users, user->nick) == user);
 	}
-	
+
+	/* NB: we dont free anything here, instead we set user->quit to nonzero
+	 * and then myev.c:_user_cb() does if(user->quit) user_free(user); */
+	user->quit = 1;
+}
+
+/* free user data structure */
+void
+user_free (struct irc_user *user)
+{	
 	/* close user's network socket */
 	close(user->sockfd);
 	

@@ -34,6 +34,7 @@ _user_cb (struct ev_loop *loop, struct ev_io *w, int revents)
 	user = w->data;
 	server = user->server;
 
+	ret = 0;
 	/* is there data waiting to be read? */
 	if (revents & EV_READ)
 	{
@@ -59,15 +60,14 @@ _user_cb (struct ev_loop *loop, struct ev_io *w, int revents)
 		ret = user_flush(user);
 	}
 
-	/* nothing happened */
-	else return;
-
-	/* unexpected return from net_send/recv */
-	if (ret == -1)
+	/* unexpected return from net_send/recv or user has quit */
+	if (ret == -1 || user->quit)
 	{
 		fprintf(stderr, "_user_cb(): disconnected socket %d\n",
 					user->sockfd);
-		user_quit(user);
+
+		if (!user->quit) user_quit(user);
+		user_free(user);
 	}
 }
 
