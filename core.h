@@ -74,7 +74,6 @@ struct irc_user {
 
 struct chan_user {
 	int has_chanop;
-	struct irc_channel *chan;
 	struct irc_user *user;
 };
 
@@ -87,12 +86,14 @@ struct chan_user {
  * will decrement the refcount then delink properly if 0 */
 struct user_user {
 	int refcount;
-	struct irc_user *user[2];
+	struct irc_user *user;
 };
 
 struct user_user *uu_link(struct irc_user *, struct irc_user *);
+int uu_update(struct irc_user *, const char *, struct irc_user *);
 void uu_unlink(struct irc_user *, struct irc_user *);
 struct chan_user *uc_link(struct irc_user *, struct irc_channel *);
+int uc_update(struct irc_user *, const char *, struct irc_channel *);
 void uc_unlink(struct irc_user *, struct irc_channel *);
 void user_init(int, struct sockaddr_in *, struct irc_server *);
 void user_quit(struct irc_user *, const char *);

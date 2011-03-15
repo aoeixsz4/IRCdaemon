@@ -100,41 +100,65 @@ server_shutdown (struct irc_server *server)
 }
 
 /* link two users, helps forwarding "QUIT" and "NICK" messages to
- * users who can 'SEE' the user and ought to be informed
+ * users who can 'SEE' eachother
  * would be useful for KILL, AWAY, etc. too */
 struct user_user *
 uu_link (struct irc_user *a, struct irc_user *b)
 {
-	struct user_user *link;
+	struct user_user *link_ab, *link_ba;
 
-	link = hash_lookup(&a->assoc_users, b->nick);
-	if (link)
+	link_ab = hash_lookup(&a->assoc_users, b->nick);
+	link_ba = hash_lookup(&b->assoc_users, a->nick);
+	if (link_ab && link_ba)
 	{
-		link->refcount++;
+		link_ab->refcount++;
+		link_ba->refcount++;
 	}
 	else
 	{
-		/* new link */
-		link = malloc(sizeof(*link));
-		if (!link) return NULL;
+		/* new links */
+		link_ab = malloc(sizeof(*link));
+		link_ba = malloc(sizeof(*link));
+		if (!link_ba)
+		{
+			free(link_ab);
+			return NULL;
+		}
 		/* we dont want any one way linkage
 		 * ... so we have to be careful here */
-		if (hash_insert(&a->assoc_users, b->nick, link))
+		if (hash_insert(&a->assoc_users, b->nick, link_ab))
 		{
-			free(link);
+			free(link_ab);
+			free(link_ba);
 			return NULL;
 		}
-		if (hash_insert(&b->assoc_users, a->nick, link))
+		if (hash_insert(&b->assoc_users, a->nick, link_ba))
 		{
-			assert(hash_remove(&a->assoc_users, b->nick) == link);
-			free(link);
+			assert(hash_remove(&a->assoc_users, b->nick) == link_ab);
+			free(link_ab);
+			free(link_ba);
 			return NULL;
 		}
-		link->user[0] = a;
-		link->user[1] = b;
-		link->refcount = 1;
+		link_ab->user = b;
+		link_ba->user = a;
+		link_ab->refcount = 1;
+		link_ba->refcount = 1;
 	}
-	return link;
+	return link_ab;
+}
+
+/* update user linkage in nickname change case */
+int
+uu_update (struct irc_user *a, const char *oldnick, struct irc_user *b)
+{
+	struct user_user *link;
+
+	link = hash_lookup(&b->assoc_users, oldnick);
+	assert(link != NULL);
+	if (hash_insert(&b->assoc_users, a->nick, link))
+		return -1;
+	hash_remove(&b->assoc_users, oldnick);
+	return 0;
 }
 
 /* unlink two users */
@@ -157,6 +181,12 @@ uu_unlink (struct irc_user *a, struct irc_user *b)
 		 * help me spot bugs with the admittedly clumsy handling of
 		 * user<->user linkage and channel<->user linkage */
 		assert(hash_remove(&a->assoc_users, b->nick) == link);
+		free(link);
+	}
+	link = hash_lookup(&b->assoc_users, a->nick);
+	link->refcount--;
+	if (!link->refcount)
+	{
 		assert(hash_remove(&b->assoc_users, a->nick) == link);
 		free(link);
 	}
@@ -208,7 +238,6 @@ uc_link (struct irc_user *user, struct irc_channel *chan)
 
 	chan_uref->has_chanop = 0;
 	chan_uref->user = user;
-	chan_uref->chan = chan;
 	
 	/* memory management in C is painful */
 	if (hash_insert(&chan->users, user->nick, chan_uref))
@@ -221,7 +250,7 @@ uc_link (struct irc_user *user, struct irc_channel *chan)
 		free(chan_uref);
 		return NULL;
 	}
-	if (hash_insert(&user->chans, chan->name, chan_uref))
+	if (hash_insert(&user->chans, chan->name, chan))
 	{
 		for (j = 0; j < i; ++j)
 		{
@@ -238,6 +267,21 @@ uc_link (struct irc_user *user, struct irc_channel *chan)
 	return chan_uref;
 }
 
+/* update user<->chan linkage when user changes nick */
+int
+uc_update (struct irc_user *user, const char *oldnick,
+			struct irc_channel *chan)
+{
+	struct chan_user *link;
+
+	link = hash_lookup(&chan->users, oldnick);
+	assert(link != NULL);
+	if (hash_insert(&chan->users, user->nick, link))
+		return -1;
+	hash_remove(&chan->users, oldnick);
+	return 0;
+}
+
 /* unlink user and channel and unlink user from users in
  * the channel */
 void
@@ -248,8 +292,8 @@ uc_unlink (struct irc_user *user, struct irc_channel *chan)
 
 	chan->refcount--;
 	/* unlink user<->chan first */
-	link = hash_remove(&user->chans, chan->name);
-	assert(link == hash_remove(&chan->users, user->nick));
+	link = hash_remove(&chan->users, user->nick);
+	assert(hash_remove(&user->chans, chan->name) == chan);
 	free(link);
 	/* now update user<->user linkage */
 	users = (struct chan_user **)hash_values(&chan->users);
@@ -274,7 +318,7 @@ chan_init (const char *name, struct irc_user *user)
 	if (!new_chan) return -1;
 	memset(new_chan, 0, sizeof(*new_chan));
 	new_chan->server = user->server;
-	hash_init(&new_chan->users);
+	hash_init(&new_chan->users); 
 
 	/* copy channel name to channel structure */
 	strncpy(new_chan->name, name, CHAN_MAX_NAME);

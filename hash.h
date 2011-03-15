@@ -22,6 +22,8 @@ int hash_insert(struct hash_table *, const char *key, void *value);
 void *hash_lookup(struct hash_table *, const char *key);
 void *hash_remove(struct hash_table *, const char *key);
 void hash_free(struct hash_table *); /* NB this just delinks and frees all buckets */
+#define hash_assert(table_ptr) \
+		assert((table_ptr)->nr_entries == 0)
 char **hash_keys(struct hash_table *);
 void **hash_values(struct hash_table *);
 struct hash_bucket **hash_buckets(struct hash_table *);
