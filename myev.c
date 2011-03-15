@@ -104,6 +104,10 @@ myev_server_init (struct irc_server *server)
 	return 0;
 }
 
+/* ev_break() causes us to return to main()
+ * main() then calls server_shutdown()
+ * therefore server_shutdown should not call
+ * myev_server_fini()!!!! */
 void
 myev_server_fini (struct irc_server *server)
 {

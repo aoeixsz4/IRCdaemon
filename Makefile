@@ -15,6 +15,9 @@ main.o: main.c
 irc.o: irc.c
 	$(CC) $(CFLAGS) -o $@ $<
 
+core.o: core.c
+	$(CC) $(CFLAGS) -o $@ $<
+
 net.o: net.c
 	$(CC) $(CFLAGS) -o $@ $<
 
@@ -30,10 +33,10 @@ proper: clean
 clean:
 	$(RM) *.o
 
-main.c irc.c: irc.h
-irc.c net.c myev.c: net.h
-hash.c irc.c: hash.h
-myev.c: myev.h
+main.c irc.c core.c: irc.h
+core.c net.c myev.c: net.h
+hash.c core.c irc.c: hash.h
+core.c myev.c: myev.h
 myev.h: irc.h
 user.h: net.h
-irc.h: hash.h
+core.h: hash.h

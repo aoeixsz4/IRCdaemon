@@ -3,8 +3,7 @@
 #define __MYEV_H__
 
 /* needed for struct irc_user and struct irc_server */
-#include <ev.h>
-#include "irc.h"
+#include "core.h"
 
 /* event loop initialiser MUST BE RUN FIRST */
 void myev_init(void);
