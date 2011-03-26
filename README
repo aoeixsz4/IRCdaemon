@@ -1,0 +1,9 @@
+ ABOUT
+Work in progress irc server in C. That is all.
+ DEPENDENCIES
+libev. That is all.
+ AUTHOR
+Ykstort / Joe Doyle (John Joseph) <ykstortionist@gmail.com>
+ LICENSE
+See COPYING
+LOlz0111
