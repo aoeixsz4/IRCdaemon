@@ -1,8 +1,7 @@
  ABOUT
 Work in progress irc server in C. That is all.
  DEPENDENCIES
-glib, libev, libc. That is all. glib i think has the functionality
-i was using libev for previously. so, glib and libc might be all i need.
+libev. That is all.
  AUTHOR
 Ykstort / Joe Doyle (John Joseph) <ykstortionist@gmail.com>
  LICENSE
