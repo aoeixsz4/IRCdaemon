@@ -2,6 +2,7 @@
  * this is the main ircd source file */
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
@@ -14,7 +15,9 @@
 #define IRCD_HOST ANY
 #define IRCD_PORT 6667
 
-static int          server_fd;
+FILE *logfile = NULL;
+
+static int          server_fd = 0;
 static ev_io        server_w;
 static ev_signal    sigterm_w;
 
@@ -64,13 +67,17 @@ server_cb (EV_P_ ev_io *w, int revents)
     if (nr_clients <= IRCD_CLIENTS_MAX
         && (my_client = malloc(sizeof(*my_client))))
     {
-        list_push(&client_list, my_client);
+        list_push((list_t **)&client_list, (list_t *)my_client);
         nr_clients++;
 
         /* save client info and init watcher */
         my_client->fd = new_fd;
         my_client->timestamp = time(NULL);
-        ev_io_init(EV_A_ &my_client->w, &client_cb, new_fd, EV_READ);
+        my_client->type = CLIENT_UNREGISTERED;
+        my_client->more = NULL;
+        my_client->in_buf.index = 0;
+        my_client->out_buf = NULL;
+        ev_io_init(&my_client->w, &client_cb, new_fd, EV_READ);
         ev_io_start(EV_A_ &my_client->w);
         my_client->w.data = my_client; /* lol recursion */
         return;
@@ -94,7 +101,6 @@ sigterm_cb (EV_P_ ev_signal *w, int revents)
 static void
 ircd ()
 {
-    FILE *logfile;
     struct ev_loop *loop;
 
     /* reopn stderr to log to ircd.err */
@@ -117,14 +123,14 @@ ircd ()
     loop = ev_default_loop(0);
 
     /* set up libev callback for incoming connections */
-    ev_io_init(EV_A_ &server_w, &server_cb, server_fd, EV_READ);
+    ev_io_init(&server_w, &server_cb, server_fd, EV_READ);
     ev_io_start(EV_A_ &server_w);
     
     /* ignore some signals, catch TERM with our own handler, consider using
      * libev for the SIGTERM callback for consistency's sake */
     signal(SIGPIPE, SIG_IGN);
     signal(SIGHUP, SIG_IGN);
-    ev_signal_init(EV_A_ &sigterm_w, &sigterm_cb, SIGTERM);
+    ev_signal_init(&sigterm_w, &sigterm_cb, SIGTERM);
     ev_signal_start(EV_A_ &sigterm_w);
 
     /* enter main loop */

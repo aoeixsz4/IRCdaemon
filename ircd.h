@@ -2,10 +2,10 @@
 #define IRCD_H
 /* ircd.h - key structure definitions for the main source file
  * Copyright Joe Doyle 2011 (See COPYING) */
-#include "list.h"       /* for list_t */
-#include "irc.h"        /* for IRC_FOO_MAX, etc */
 #include <time.h>       /* for time_t */
 #include <ev.h>         /* for ev_io */
+#include "list.h"       /* for list_t */
+#include "irc.h"        /* for IRC_FOO_MAX, etc */
 
 /* non RFC based constants */
 /* TODO: find out how much address space is taken if we prealloc
@@ -14,7 +14,6 @@
 #define IRCD_USERS_MAX      100000
 #define IRCD_SERVERS_MAX    100
 #define IRCD_CHANS_MAX      500
-#define BUFFER_SIZE         (4 * 4096)
 
 typedef struct client client_t;
 typedef struct user user_t;
@@ -22,19 +21,20 @@ typedef struct chan chan_t;
 typedef struct server server_t;
 typedef struct user_ref user_ref_t;
 typedef struct chan_ref chan_ref_t;
-typedef struct recv_buffer recv_buffer_t;
-typedef struct send_buffer send_buffer_t;
+#include "net.h"        /* for recv/send_buffer_t */
 
-/* message buffers */
-struct recv_buffer {
-    int     index;
-    char    buffer[BUFFER_SIZE];
+/* client types */
+enum {
+    CLIENT_UNREGISTERED = 0,
+    CLIENT_USER = 1,
+    CLIENT_SERVER = 2
 };
 
-struct send_buffer {
-    list_t  list_head;
-    int     index;
-    char    buffer[BUFFER_SIZE];
+/* quit reasons */
+enum {
+    QUIT_MAX_SENDQ_EXCEEDED = 1,
+    QUIT_OUT_OF_MEMORY = 2,
+    QUIT_USER_MSG = 3
 };
 
 /* struct client represents a connected client

@@ -10,7 +10,7 @@ struct list {
     list_t  *prev;
 };
 
-list_t *list_pop(list_t **)
-void list_push(list_t **, list_t *);
-void list-unlink(list_t *);
+list_t *list_pop (list_t **);
+void list_push (list_t **, list_t *);
+void list_unlink (list_t **, list_t *);
 #endif /* LIST_H */

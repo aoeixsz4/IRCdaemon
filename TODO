@@ -1,1 +1,3 @@
 Lots
+ . drop(client, reason)
+ . client_cb(EV_P_ w, revents)

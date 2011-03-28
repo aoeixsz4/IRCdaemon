@@ -29,8 +29,10 @@ list_push (list_t **n0, list_t *new)
 }
 
 void
-list_unlink (list_t *link)
+list_unlink (list_t **n0, list_t *link)
 {
+    if (*n0 == link)
+        *n0 = link->next;
     if (link->prev)
         link->prev->next = link->next;
     if (link->next)

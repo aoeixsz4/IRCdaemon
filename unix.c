@@ -59,7 +59,7 @@ resolve (const char *host, in_port_t port, struct sockaddr_in *address)
 int
 unix_connect (const char *host, in_port_t port)
 {
-    int fd, ret;
+    int fd;
     struct sockaddr_in addr;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
